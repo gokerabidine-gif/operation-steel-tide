@@ -1254,7 +1254,7 @@ public partial class TacticalPlayer : CharacterBody3D, ISquadCombatant
     {
         if (@event is InputEventScreenDrag touchDrag)
         {
-            if (touchDrag.Position.X >= GetViewportRect().Size.X * 0.38f)
+            if (touchDrag.Position.X >= GetViewport().GetVisibleRect().Size.X * 0.38f)
             {
                 ApplyMobileLook(touchDrag.ScreenRelative);
                 GetViewport().SetInputAsHandled();
