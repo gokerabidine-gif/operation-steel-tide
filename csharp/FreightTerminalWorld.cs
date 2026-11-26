@@ -1038,6 +1038,7 @@ public partial class FreightTerminalWorld : Node3D
         _player.Died += OnPlayerDied;
         _hud.SetSettings(_sensitivitySetting, _qualitySetting, _fullscreenSetting, _languageSetting);
         _hud.SetBackpackValuePlayer(_player);
+        _hud.SetMobilePlayer(_player);
         RefreshLocalizedObjective();
     }
 
