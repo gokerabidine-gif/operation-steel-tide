@@ -72,7 +72,7 @@ jobs:
 
       - name: Import project and compile C#
         run: |
-          godot --headless --editor --path . --import
+          godot --headless --editor --path . --import --quit
           godot --headless --editor --path . --build-solutions --quit
 
       - name: Install Android Gradle build template
