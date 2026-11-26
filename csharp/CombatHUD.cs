@@ -1623,6 +1623,19 @@ public partial class CombatHUD : CanvasLayer
 
     public void SetAiming(bool active) => _crosshair.Visible = !active;
 
+    public void SetMobilePlayer(TacticalPlayer player)
+    {
+        if (!OS.HasFeature("mobile") || !IsInstanceValid(_gameplayHudRoot))
+        {
+            return;
+        }
+
+        var controls = new MobileTouchControls { Name = "MobileTouchControls" };
+        controls.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        _gameplayHudRoot.AddChild(controls);
+        controls.BindPlayer(player);
+    }
+
     public void ShowRadioMessage(string message, Color color)
     {
         if (_radioMessageDiagnosticSuppressionDepth > 0)
