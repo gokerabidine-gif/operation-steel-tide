@@ -206,6 +206,8 @@ public partial class TacticalPlayer : CharacterBody3D, ISquadCombatant
     private bool _nvgOn;
     private bool _fireInputArmed;
     private bool _movementInputArmed;
+    private bool _mobileFireHeld;
+    private Vector2 _mobileMoveInput;
     private readonly Dictionary<AttachmentSlot, LootGrade> _equippedAttachmentGrades = new();
     private DriveableVehicle? _vehicle;
     private bool _vehicleCameraFollow;
@@ -331,6 +333,68 @@ public partial class TacticalPlayer : CharacterBody3D, ISquadCombatant
         _movementInputArmed = true;
         _movementReleaseTime = 0.0f;
         HasMovementIntent = false;
+    }
+
+    public void SetMobileMoveInput(Vector2 input)
+    {
+        _mobileMoveInput = UiLocked || IsDead || IsInVehicle || _isClimbingLadder
+            ? Vector2.Zero
+            : input.LimitLength(1.0f);
+        if (_mobileMoveInput.LengthSquared() > 0.001f && !_movementInputArmed)
+        {
+            RestoreMovementInput();
+        }
+    }
+
+    public void SetMobileAction(StringName action, bool pressed)
+    {
+        if (pressed && (UiLocked || IsDead))
+        {
+            return;
+        }
+        if (pressed)
+        {
+            Input.ActionPress(action);
+        }
+        else
+        {
+            Input.ActionRelease(action);
+        }
+        if (action == GameInputActions.Fire)
+        {
+            _mobileFireHeld = pressed;
+        }
+    }
+
+    public void ApplyMobileLook(Vector2 screenRelative)
+    {
+        if (IsDead || UiLocked || screenRelative.LengthSquared() < 0.0001f)
+        {
+            return;
+        }
+
+        if (IsInVehicle || _isClimbingLadder || _isVaulting)
+        {
+            _pitch = Mathf.Clamp(_pitch - screenRelative.Y * MouseSensitivity, -1.38f, 1.38f);
+            RefreshPhysicsAimTransform();
+            return;
+        }
+
+        var rotation = Rotation;
+        rotation.Y -= screenRelative.X * MouseSensitivity;
+        Rotation = rotation;
+        _pitch = Mathf.Clamp(_pitch - screenRelative.Y * MouseSensitivity, -1.38f, 1.38f);
+        RefreshPhysicsAimTransform();
+    }
+
+    private Vector2 GetMovementInput()
+    {
+        var keyboard = Input.GetVector(
+            GameInputActions.MoveLeft,
+            GameInputActions.MoveRight,
+            GameInputActions.MoveForward,
+            GameInputActions.MoveBackward);
+        return (keyboard + _mobileMoveInput).LimitLength(1.0f);
     }
 
     /// <summary>Diagnostics: yaw the body toward a world point so move_forward walks that way.</summary>
@@ -1188,6 +1252,16 @@ public partial class TacticalPlayer : CharacterBody3D, ISquadCombatant
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (@event is InputEventScreenDrag touchDrag)
+        {
+            if (touchDrag.Position.X >= GetViewportRect().Size.X * 0.38f)
+            {
+                ApplyMobileLook(touchDrag.ScreenRelative);
+                GetViewport().SetInputAsHandled();
+            }
+            return;
+        }
+
         if (@event is not InputEventMouseMotion motion
             || Input.MouseMode != Input.MouseModeEnum.Captured
             || IsDead)
@@ -1413,7 +1487,7 @@ public partial class TacticalPlayer : CharacterBody3D, ISquadCombatant
         var fireRequested = IsFirearmQuickSlotSelected && _automaticFire
             ? Input.IsActionPressed(GameInputActions.Fire)
             : Input.IsActionJustPressed(GameInputActions.Fire);
-        if (!_isPlating && !RoleActionBlocksWeapon && !MedicalActionBlocksWeapon && _fireInputArmed && fireRequested && Input.MouseMode == Input.MouseModeEnum.Captured)
+        if (!_isPlating && !RoleActionBlocksWeapon && !MedicalActionBlocksWeapon && _fireInputArmed && fireRequested && (Input.MouseMode == Input.MouseModeEnum.Captured || _mobileFireHeld))
         {
             if (_activeQuickSlot == PlayerQuickSlot.Melee)
             {
@@ -1512,7 +1586,7 @@ public partial class TacticalPlayer : CharacterBody3D, ISquadCombatant
         if (IsFirearmQuickSlotSelected
             && _fireInputArmed
             && fireRequested
-            && Input.MouseMode == Input.MouseModeEnum.Captured
+            && (Input.MouseMode == Input.MouseModeEnum.Captured || _mobileFireHeld)
             && !RoleActionBlocksWeapon
             && !MedicalActionBlocksWeapon)
         {
@@ -1572,13 +1646,7 @@ public partial class TacticalPlayer : CharacterBody3D, ISquadCombatant
             EjectFromVehicleIfAny();
         }
 
-        var input = UiLocked
-            ? Vector2.Zero
-            : Input.GetVector(
-                GameInputActions.MoveLeft,
-                GameInputActions.MoveRight,
-                GameInputActions.MoveForward,
-                GameInputActions.MoveBackward);
+        var input = UiLocked ? Vector2.Zero : GetMovementInput();
         var direction = (Transform.Basis * new Vector3(input.X, 0, input.Y)).Normalized();
         var velocity = Velocity;
         velocity.X = Mathf.MoveToward(velocity.X, direction.X * CrawlSpeed, delta * 10.0f);
@@ -1653,11 +1721,7 @@ public partial class TacticalPlayer : CharacterBody3D, ISquadCombatant
 
     private void MovePlayer(float delta)
     {
-        var input = Input.GetVector(
-            GameInputActions.MoveLeft,
-            GameInputActions.MoveRight,
-            GameInputActions.MoveForward,
-            GameInputActions.MoveBackward);
+        var input = GetMovementInput();
         if (!_movementInputArmed)
         {
             if (input.LengthSquared() > 0.001f)
