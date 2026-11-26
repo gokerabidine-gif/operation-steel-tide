@@ -171,10 +171,10 @@ public partial class EnemyOperator : CharacterBody3D, ILootSource, IOpenableLoot
     private const float ForeignRivalPreference = 30.0f * 30.0f;
     private const float ForeignOperatorPreference = 24.0f * 24.0f;
     private const float DownedFinishLockSeconds = 1.5f;
-    private const float ActiveTargetAcquireInterval = 0.24f;
-    private const float IdleTargetAcquireInterval = 0.48f;
-    private const float ActiveLineOfSightInterval = 0.09f;
-    private const float IdleLineOfSightInterval = 0.16f;
+    private const float ActiveTargetAcquireInterval = 0.32f;
+    private const float IdleTargetAcquireInterval = 0.64f;
+    private const float ActiveLineOfSightInterval = 0.12f;
+    private const float IdleLineOfSightInterval = 0.22f;
     private bool UsesLongRangeRifle => CarriedWeapon.Platform is WeaponPlatform.M24 or WeaponPlatform.AXMC;
     private float CurrentContactAcquireRange => IsWorldBoss
         ? 240.0f
