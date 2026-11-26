@@ -59,6 +59,11 @@ jobs:
           use-dotnet: true
           include-templates: true
 
+      - name: Set up .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
       - name: Verify toolchain
         run: |
           godot --version
