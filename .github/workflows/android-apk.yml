@@ -41,7 +41,7 @@ jobs:
 
       - name: Install Android SDK packages
         run: |
-          yes | sdkmanager --licenses
+          yes 2>/dev/null | sdkmanager --licenses >/dev/null || true
           sdkmanager \
             "platform-tools" \
             "build-tools;35.0.1" \
